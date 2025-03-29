@@ -1,0 +1,11 @@
+{
+  "imports": {
+    "@supabase/supabase-js": "jsr:@supabase/supabase-js@^2.0.0",
+    "replicate": "npm:replicate@^0.29.1",
+    "@supabase/functions-js": "npm:@supabase/functions-js@2.4.1"
+  },
+  "compilerOptions": {
+    "lib": ["deno.ns", "dom", "dom.iterable", "esnext"],
+    "types": ["npm:@supabase/functions-js/edge-runtime.d.ts"]
+  }
+}
