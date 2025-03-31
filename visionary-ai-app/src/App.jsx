@@ -3,6 +3,7 @@ import './App.css';
 import { supabase } from './supabaseClient';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom'; // Import Router components
 
 // Import components
 import ImageUpload from './components/ImageUpload'; // Keep if used elsewhere, otherwise remove if VisionFlow handles it
@@ -11,6 +12,7 @@ import VisualizationDisplay from './components/VisualizationDisplay';
 import PromptEnhancer from './components/PromptEnhancer'; // Keep if used elsewhere, otherwise remove if VisionFlow handles it
 import VisionFlow from './components/VisionFlow'; // Import new VisionFlow component
 
+import HistoryPage from './components/HistoryPage'; // Import the new HistoryPage component
 // Import motion from framer-motion for welcome screen animations
 import { motion } from 'framer-motion';
 
@@ -89,6 +91,63 @@ function AccountMenu({ onLogout, session }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// --- Bottom Navigation Component ---
+export function BottomNav({ session }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Check which tab is active based on current path
+  const isActive = (path) => {
+    return location.pathname === path;
+  };
+
+  return (
+    <div className="bottom-nav">
+      <div 
+        className={`nav-item ${isActive('/') ? 'active' : ''}`} 
+        onClick={() => navigate('/')}
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" 
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M9 22V12h6v10" 
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        <span>Home</span>
+      </div>
+      
+      <div 
+        className={`nav-item ${isActive('/create') ? 'active' : ''}`} 
+        onClick={() => navigate('/create')}
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M12 8v8M8 12h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        <span>Create</span>
+      </div>
+      
+      <div 
+        className={`nav-item ${isActive('/history') ? 'active' : ''}`} 
+        onClick={() => navigate('/history')}
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 8v4l3 3M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        <span>History</span>
+      </div>
+      
+      <div className="nav-item" onClick={() => navigate('/profile')}>
+        <div className="nav-avatar">
+          {session?.user?.email?.charAt(0).toUpperCase() || '?'}
+        </div>
+        <span>Profile</span>
+      </div>
     </div>
   );
 }
@@ -178,6 +237,9 @@ function WelcomeScreen({ onStart, session, onLogout }) {
         "Vision is the art of seeing what is invisible to others."
         <span className="quote-author">— Jonathan Swift</span>
       </motion.div>
+      
+      {/* Add bottom nav to welcome screen */}
+      {session && <BottomNav session={session} />}
     </motion.div>
   );
 }
@@ -221,6 +283,9 @@ function LoadingScreen({ status, enhancedPrompt, session, onLogout, error }) {
           )}
         </div>
       )}
+      
+      {/* Add bottom nav to loading screen */}
+      {session && <BottomNav session={session} />}
     </div>
   );
 }
@@ -371,6 +436,9 @@ function ResultScreen({ mediaUrl, mediaType, error, onStartOver, session, onLogo
            </motion.div>
         )}
       </motion.div>
+      
+      {/* Add bottom nav to result screen */}
+      {session && <BottomNav session={session} />}
     </motion.div>
   );
 }
@@ -447,6 +515,9 @@ function HistoryScreen({ creations, isLoading, error, onViewCreation, onStartOve
           ))}
         </div>
       )}
+      
+      {/* Add bottom nav to history screen */}
+      {session && <BottomNav session={session} />}
     </motion.div>
   );
 }
@@ -454,9 +525,10 @@ function HistoryScreen({ creations, isLoading, error, onViewCreation, onStartOve
 
 // --- Main App Component ---
 
-function App() {
+function AppContent() { // Renamed App to AppContent
+  const navigate = useNavigate(); // Use navigate hook
+  const location = useLocation();
   const [session, setSession] = useState(null);
-  const [currentView, setCurrentView] = useState('welcome'); // 'welcome', 'workflow', 'loading', 'result', 'history'
 
   // Workflow State
   const [userImageFile, setUserImageFile] = useState(null);
@@ -486,7 +558,7 @@ function App() {
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
 
   // --- Auth Effect ---
-  useEffect(() => {
+  useEffect(() => { // Effects and state logic remain inside AppContent
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
     });
@@ -499,22 +571,21 @@ function App() {
       if (_event === 'SIGNED_OUT') {
         setUserImageFile(null);
         setGoalText('');
-        setResultMedia(null);
         setError('');
         setGenerationType('image');
         setSelectedModel({ image: 'flux-schnell', video: 'tencent-hunyuan-video' });
-        setCurrentView('welcome');
+        navigate('/');
         setIsLoading(false);
         setVisualizationStatus(null);
         setEnhancedPrompt('');
         setCreationHistory([]);
       } else if (_event === 'SIGNED_IN') {
          // Optionally load history or go to workflow on sign in
-         setCurrentView('welcome'); // Go to welcome after sign in
+         navigate('/');
       }
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate]); // Add navigate to dependency array
 
 
   // Handle logout
@@ -533,7 +604,7 @@ function App() {
     if (!session) {
       // This case should ideally be handled by UI (e.g., disabling button)
       // but as a fallback, redirect to login or show message
-      setCurrentView('welcome'); // Or show a login prompt
+      navigate('/'); // Navigate home if not logged in
       return;
     }
 
@@ -547,7 +618,7 @@ function App() {
     setIsLoading(false);
     setVisualizationStatus(null);
     setEnhancedPrompt('');
-    setCurrentView('workflow');
+    navigate('/create'); // Navigate to create page
   };
 
   // New handler for when VisionFlow completes (via SSE)
@@ -565,7 +636,7 @@ function App() {
           progress: visualizationStatus?.progress || 0, // Keep last progress or 0
           details: errorMessage
       });
-      setCurrentView('loading'); // Stay on loading view to show the error status
+      navigate('/loading');
     } else if (data && data.success) {
       console.log("Visualization successful:", data);
       
@@ -605,7 +676,7 @@ function App() {
       // Enhanced prompt should have been set via status updates in VisionFlow
       setError(''); // Clear any previous errors
       // Status is already set to complete by VisionFlow before calling this
-      setCurrentView('result'); // Switch to the result screen
+      navigate('/result');
     } else {
       // Handle unexpected case where stream ends without proper complete/error
       const unexpectedError = 'The visualization process finished unexpectedly. Please try again.';
@@ -617,7 +688,7 @@ function App() {
           progress: visualizationStatus?.progress || 99, // Assume it nearly finished
           details: unexpectedError
       });
-      setCurrentView('loading'); // Stay on loading to show the error status
+      navigate('/loading');
     }
   };
 
@@ -650,7 +721,7 @@ function App() {
   const handleViewHistory = () => {
     if (!session) return; // Should not happen if button is shown correctly
     loadCreationHistory();
-    setCurrentView('history');
+    navigate('/history'); // Navigate to history page
   };
 
   // Handle viewing a specific creation from history
@@ -661,96 +732,16 @@ function App() {
     setGoalText(creation.original_prompt); // Set original prompt for context
     setEnhancedPrompt(creation.enhanced_prompt); // Set enhanced prompt
     setError(''); // Clear any errors from history view
-    setCurrentView('result');
-  };
-
-  const renderCurrentView = () => {
-    // If not logged in and not on welcome screen, show login screen
-    // This logic is now primarily handled by the main return block checking !session
-    // Keeping the switch case clean for logged-in states.
-
-    switch (currentView) {
-      case 'welcome':
-        return <WelcomeScreen onStart={handleStartWorkflow} session={session} onLogout={handleLogout} />;
-
-      case 'workflow':
-        return (
-          <>
-            {/* AccountMenu is now rendered outside the switch in the main return for logged-in users */}
-            <VisionFlow
-              // onVisualize is removed
-              onVisualizationComplete={handleVisualizationComplete} // Pass the new handler
-              userImageFile={userImageFile}
-              setUserImageFile={setUserImageFile}
-              goalText={goalText}
-              setGoalText={setGoalText}
-              generationType={generationType}
-              setGenerationType={setGenerationType}
-              selectedModel={selectedModel}
-              setSelectedModel={setSelectedModel}
-              isLoading={isLoading} // Pass isLoading state
-              setIsLoading={setIsLoading} // Pass setIsLoading setter
-              visualizationStatus={visualizationStatus} // Pass status state
-              setVisualizationStatus={setVisualizationStatus} // Pass status setter
-              enhancedPrompt={enhancedPrompt} // Pass enhanced prompt state
-              setEnhancedPrompt={setEnhancedPrompt} // Pass enhanced prompt setter
-              setCurrentView={setCurrentView} // Pass setCurrentView to allow VisionFlow to change view to 'loading'
-            />
-          </>
-        );
-
-      case 'loading':
-        // Error message is now passed directly to LoadingScreen
-        return (
-          <LoadingScreen
-            status={visualizationStatus}
-            enhancedPrompt={enhancedPrompt}
-            session={session}
-            onLogout={handleLogout}
-            error={error} // Pass the error state directly
-          />
-        );
-
-      case 'result':
-        return (
-          <ResultScreen
-            mediaUrl={resultMedia}
-            mediaType={resultMediaType}
-            error={error} // Pass error state
-            onStartOver={handleStartWorkflow}
-            session={session}
-            onLogout={handleLogout}
-            originalPrompt={goalText} // Pass original prompt
-            enhancedPrompt={enhancedPrompt} // Pass enhanced prompt
-            onViewHistory={handleViewHistory}
-          />
-        );
-
-      case 'history':
-        return (
-          <HistoryScreen
-            creations={creationHistory}
-            isLoading={isHistoryLoading}
-            error={error} // Pass error state from loading history
-            onViewCreation={handleViewCreation}
-            onStartOver={handleStartWorkflow}
-            session={session}
-            onLogout={handleLogout}
-          />
-        );
-
-      default:
-        // Fallback to welcome screen if view state is unexpected
-        return <WelcomeScreen onStart={handleStartWorkflow} session={session} onLogout={handleLogout} />;
-    }
+    navigate('/result'); // Navigate to result page
   };
 
   return (
     <div className="App">
       <header>
-        <h1>VisionaryAI</h1>
+        {/* Use Link for navigation */}
+        <h1><Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>VisionaryAI</Link></h1>
         {/* Render AccountMenu here if user is logged in, regardless of view */}
-        {session && currentView !== 'welcome' && <AccountMenu session={session} onLogout={handleLogout} />}
+        {session && <AccountMenu session={session} onLogout={handleLogout} />}
       </header>
 
       {!session ? (
@@ -782,8 +773,83 @@ function App() {
          // Render the current view based on state for logged-in users
          <div className="main-content">
            {/* Show general errors prominently, e.g., logout error */}
-           {error && (currentView === 'welcome' || currentView === 'workflow') && <p className="error-message main-error">{error}</p>}
-           {renderCurrentView()}
+           {error && <p className="error-message main-error">{error}</p>}
+           <Routes> {/* Define routes */}
+               <Route path="/" element={<WelcomeScreen onStart={handleStartWorkflow} session={session} onLogout={handleLogout} />} />
+               <Route path="/create" element={
+                 <VisionFlow
+                   onVisualizationComplete={handleVisualizationComplete}
+                   userImageFile={userImageFile}
+                   setUserImageFile={setUserImageFile}
+                   goalText={goalText}
+                   setGoalText={setGoalText}
+                   generationType={generationType}
+                   setGenerationType={setGenerationType}
+                   selectedModel={selectedModel}
+                   setSelectedModel={setSelectedModel}
+                   isLoading={isLoading}
+                   setIsLoading={setIsLoading}
+                   visualizationStatus={visualizationStatus}
+                   setVisualizationStatus={setVisualizationStatus}
+                   enhancedPrompt={enhancedPrompt}
+                   setEnhancedPrompt={setEnhancedPrompt}
+                   session={session}
+                   // Pass navigate directly or handle navigation within VisionFlow
+                   // For now, assume VisionFlow calls navigate('/loading') when needed
+                   navigate={navigate}
+                 />
+               } />
+               <Route path="/loading" element={
+                 <LoadingScreen
+                   status={visualizationStatus}
+                   enhancedPrompt={enhancedPrompt}
+                   session={session}
+                   onLogout={handleLogout}
+                   error={error}
+                 />
+               } />
+               <Route path="/result" element={
+                 <ResultScreen
+                   mediaUrl={resultMedia}
+                   mediaType={resultMediaType}
+                   error={error}
+                   onStartOver={handleStartWorkflow}
+                   session={session}
+                   onLogout={handleLogout}
+                   originalPrompt={goalText}
+                   enhancedPrompt={enhancedPrompt}
+                   onViewHistory={handleViewHistory} // Still uses navigate internally
+                 />
+               } />
+               <Route path="/history" element={
+                 <HistoryPage 
+                   creations={creationHistory}
+                   isLoading={isHistoryLoading}
+                   error={error}
+                   onViewCreation={handleViewCreation} // Still uses navigate internally
+                   onStartOver={handleStartWorkflow} // Still uses navigate internally
+                   session={session}
+                   onLogout={handleLogout}
+                 />
+               } />
+               {/* Add route for profile */}
+               <Route path="/profile" element={
+                 <div className="profile-screen view-container">
+                   <h2>User Profile</h2>
+                   <div className="profile-info">
+                     <div className="profile-avatar">
+                       {session?.user?.email?.charAt(0).toUpperCase() || '?'}
+                     </div>
+                     <h3>{session?.user?.email}</h3>
+                   </div>
+                   <button onClick={handleLogout} className="logout-button">Logout</button>
+                   {/* Add BottomNav to profile screen */}
+                   <BottomNav session={session} />
+                 </div>
+               } />
+               {/* Fallback route */}
+               <Route path="*" element={<WelcomeScreen onStart={handleStartWorkflow} session={session} onLogout={handleLogout} />} /> {/* Redirect to home */}
+             </Routes>
          </div>
       )}
 
@@ -794,5 +860,12 @@ function App() {
   );
 }
 
+function App() {
+  return (
+    <Router>
+      <AppContent /> {/* Render the component containing state and logic */}
+    </Router>
+  );
+}
 
 export default App;

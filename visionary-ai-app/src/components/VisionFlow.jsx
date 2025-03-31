@@ -2,12 +2,14 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import './VisionFlow.css';
+import './VisionFlow.mobile.css';
 
 import ImageUpload from './ImageUpload';
 import GoalInput from './GoalInput';
 import PromptEnhancer from './PromptEnhancer';
 
 import { supabase } from '../supabaseClient'; // Import supabase client
+import { BottomNav } from '../App';
 
 // Step indicators/progress component
 function ProgressTracker({ currentStep, totalSteps, completedSteps, onClick }) {
@@ -362,8 +364,12 @@ function VisionFlow({
   setVisualizationStatus,
   enhancedPrompt,
   setEnhancedPrompt,
-  onVisualizationComplete // Add a new prop to pass the final result up
+  onVisualizationComplete, // Add a new prop to pass the final result up
+  session
 }) {
+  // Adding console log to debug
+  console.log("VisionFlow received session prop:", session);
+  
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState([]);
   const [quote, setQuote] = useState(getRandomQuote(1));
@@ -1479,6 +1485,9 @@ function VisionFlow({
           enhancedPrompt={enhancedPrompt}
         />
       )}
+
+      {/* Bottom navigation */}
+      {session ? <BottomNav session={session} /> : null}
     </div>
   );
 }
