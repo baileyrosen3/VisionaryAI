@@ -1,10 +1,29 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
-// Accept onFileSelect prop to notify parent component
-function ImageUpload({ onFileSelect, generationType }) {
+// Accept onFileSelect prop to notify parent component and selectedImage to show existing selection
+function ImageUpload({ onFileSelect, selectedImage }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const fileInputRef = useRef(null);
+  
+  // When selectedImage prop changes, update the preview
+  useEffect(() => {
+    if (selectedImage) {
+      // If the selectedImage is a File object
+      if (selectedImage instanceof File) {
+        setSelectedFile(selectedImage);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPreview(reader.result);
+        };
+        reader.readAsDataURL(selectedImage);
+      } 
+      // If the selectedImage is already a data URL
+      else if (typeof selectedImage === 'string' && selectedImage.startsWith('data:')) {
+        setPreview(selectedImage);
+      }
+    }
+  }, [selectedImage]);
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
